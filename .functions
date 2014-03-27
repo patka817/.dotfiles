@@ -1,0 +1,84 @@
+# Git commit random message
+gcmrand() {
+  git commit -m"`curl -s http://whatthecommit.com/index.txt`"
+}
+
+gcamrand() {
+  git add '.'
+  gcmrand
+}
+
+# Extract most know archives with one command
+extract () {
+  if [ -f $1 ] ; then
+    case $1 in
+      *.tar.bz2)   tar xjf $1     ;;
+      *.tar.gz)    tar xzf $1     ;;
+      *.bz2)       bunzip2 $1     ;;
+      *.rar)       unrar e $1     ;;
+      *.gz)        gunzip $1      ;;
+      *.tar)       tar xf $1      ;;
+      *.tbz2)      tar xjf $1     ;;
+      *.tgz)       tar xzf $1     ;;
+      *.zip)       unzip $1       ;;
+      *.Z)         uncompress $1  ;;
+      *.7z)        7z x $1        ;;
+      *.sfx)       unrar e $1     ;;
+      *)     echo "'$1' cannot be extracted via extract()" ;;
+    esac
+  else
+    echo "'$1' is not a valid file"
+  fi
+}
+
+# Make and cd into directory
+function mkd() {
+  mkdir -p "$1" && cd "$1";
+}
+
+# cd into whatever is the forefront Finder window.
+cdf() {  # short for cdfinder
+  cd "`osascript -e 'tell app "Finder" to POSIX path of (insertion location as alias)'`"
+}
+
+# Create a .tar.gz archive, using `zopfli`, `pigz` or `gzip` for compression
+function targz() {
+  local tmpFile="${@%/}.tar"
+  tar -cvf "${tmpFile}" --exclude=".DS_Store" "${@}" || return 1
+
+  size=$(
+    stat -f"%z" "${tmpFile}" 2> /dev/null; # OS X `stat`
+    stat -c"%s" "${tmpFile}" 2> /dev/null # GNU `stat`
+  )
+
+  local cmd=""
+  if (( size < 52428800 )) && hash zopfli 2> /dev/null; then
+    # the .tar file is smaller than 50 MB and Zopfli is available; use it
+    cmd="zopfli"
+  else
+    if hash pigz 2> /dev/null; then
+      cmd="pigz"
+    else
+      cmd="gzip"
+    fi
+  fi
+
+  echo "Compressing .tar using \`${cmd}\`…"
+  "${cmd}" -v "${tmpFile}" || return 1
+  [ -f "${tmpFile}" ] && rm "${tmpFile}"
+  echo "${tmpFile}.gz created successfully."
+}
+
+# Determine size of a file or total size of a directory
+function fs() {
+  if du -b /dev/null > /dev/null 2>&1; then
+    local arg=-sbh
+  else
+    local arg=-sh
+  fi
+  if [[ -n "$@" ]]; then
+    du $arg -- "$@"
+  else
+    du $arg .[^.]* *
+  fi
+}

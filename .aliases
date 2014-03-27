@@ -1,0 +1,32 @@
+# Fast traversing up the dir tree
+alias cd.="cd .."
+alias cd..="cd ../.."
+alias cd...="cd ../../.."
+
+# Misc
+alias ls="ls -l"
+alias k="g++ -O2 --std=c++11"
+
+# Git
+alias ga="git add"
+alias gb="git branch"
+alias go="git checkout"
+alias gl="git lg"
+alias glo="git log --oneline"
+alias gd="git diff"
+alias gs="git status"
+alias gf="git fetch"
+alias gr="git rebase"
+alias gsq="git rebase -i HEAD~2"
+alias gm="git merge"
+alias gp="git push"
+alias gc="git commit"
+alias gcm="git commit -m"
+alias gcam="git commit -am"
+alias gu="git up"
+
+# Application aliases
+alias emacs="open -a Emacs"
+alias te="open -a Textedit"
+alias preview="open -a Preview"
+alias f="open -a Finder"
