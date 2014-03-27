@@ -42,7 +42,7 @@ if [ -d "$ANDROID_HOME_DIR" ]; then
 	export PATH=$PATH:$ANDROID_HOME_DIR/tools
 fi
 
-ANDROID_HOME_DIR=~/Projects/Android/adt-bundle-mac-x86_64-20131030/sdk	
+ANDROID_HOME_DIR=~/Projects/Android/adt-bundle-mac-x86_64-20131030/sdk
 if [ -d "$ANDROID_HOME_DIR" ]; then
 	export ANDROID_HOME=$ANDROID_HOME_DIR
 	export PATH=$PATH:$ANDROID_HOME_DIR/platform-tools
