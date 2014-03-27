@@ -1,5 +1,5 @@
 # Colored and customized terminal prompt
-export PS1="[\[\e[0;32m\]\w\[\e[m\] ]$ "
+export PS1="[\[\e[0;32m\]\W\[\e[m\] ]$ "
 
 # Colored ls output
 export LSCOLORS=gxBxhxDxfxhxhxhxhxcxcx
@@ -29,7 +29,31 @@ export GREP_OPTIONS="--color=auto"
 # Link Homebrew casks in `/Applications` rather than `~/Applications`
 export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 
-# Android development
-PATH=$PATH:/Users/jonasbromo/Projects/Android/android-ndk-r9c
-PATH=$PATH:/Users/jonasbromo/Projects/Android/adt-bundle-mac-x86_64-20131030/sdk/platform-tools
-PATH=$PATH:/Users/jonasbromo/Projects/Android/adt-bundle-mac-x86_64-20131030/sdk/tools
+# Android
+export PATH=$PATH:~/Projects/Android/android-ndk-r9c
+export PATH=$PATH:~/Projects/Android/apache-ant-1.9.2/bin
+export PATH=$PATH:~/Projects/Android/apache-ant-1.9.2/bin
+export JAVA_HOME=`/usr/libexec/java_home -v 1.6`
+
+ANDROID_HOME_DIR=~/Projects/Android/adt-bundle-mac-x86_64-20130917/sdk
+if [ -d "$ANDROID_HOME_DIR" ]; then
+	export ANDROID_HOME=$ANDROID_HOME_DIR
+	export PATH=$PATH:$ANDROID_HOME_DIR/platform-tools
+	export PATH=$PATH:$ANDROID_HOME_DIR/tools
+fi
+
+ANDROID_HOME_DIR=~/Projects/Android/adt-bundle-mac-x86_64-20131030/sdk	
+if [ -d "$ANDROID_HOME_DIR" ]; then
+	export ANDROID_HOME=$ANDROID_HOME_DIR
+	export PATH=$PATH:$ANDROID_HOME_DIR/platform-tools
+	export PATH=$PATH:$ANDROID_HOME_DIR/tools
+fi
+
+#Emscripten
+export PATH=$PATH:/opt/emsdk_portable:/opt/emsdk_portable/clang/3.2_64bit/bin:/opt/emsdk_portable/node/0.10.18_64bit/bin:/opt/emsdk_portable/emscripten/1.8.2
+
+#PHP
+export PATH=$PATH:/Applications/MAMP/bin/php/php5.4.10/bin
+
+#Misc
+export THEOS=/opt/theos
