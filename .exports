@@ -50,7 +50,7 @@ if [ -d "$ANDROID_HOME_DIR" ]; then
 fi
 
 #Emscripten
-export PATH=$PATH:/opt/emsdk_portable:/opt/emsdk_portable/clang/3.2_64bit/bin:/opt/emsdk_portable/node/0.10.18_64bit/bin:/opt/emsdk_portable/emscripten/1.8.2
+export PATH=$PATH:/opt/emsdk_portable:/opt/emsdk_portable/clang/e1.16.0_64bit/bin:/opt/emsdk_portable/node/0.10.18_64bit/bin:/opt/emsdk_portable/emscripten/1.16.0
 
 #PHP
 export PATH=$PATH:/Applications/MAMP/bin/php/php5.4.10/bin
