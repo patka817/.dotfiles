@@ -4,8 +4,8 @@ alias cd..="cd ../.."
 alias cd...="cd ../../.."
 
 # Misc
-alias ls="ls -l"
-alias k="g++ -O2 --std=c++11"
+alias ls='ls -FlGo'
+alias lsd="ls -alFG | grep '^d'"
 alias find-big-files="find . -type f -print0 | xargs -0 stat -f '%z %N%n' | sort -nr | head -n 20"
 
 # Git
