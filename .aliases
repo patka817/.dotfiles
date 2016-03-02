@@ -1,11 +1,15 @@
+
+DOTFILE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Fast traversing up the dir tree
 alias cd.="cd .."
 alias cd..="cd ../.."
 alias cd...="cd ../../.."
 
 # Misc
-alias ls="ls -l"
-alias k="g++ -O2 --std=c++11"
+alias ls='ls -FlGo'
+alias lsd="ls -alFG | grep '^d'"
+alias find-big-files="find . -type f -print0 | xargs -0 stat -f '%z %N%n' | sort -nr | head -n 20"
 
 # Git
 alias ga="git add"
@@ -24,6 +28,7 @@ alias gc="git commit"
 alias gcm="git commit -m"
 alias gcam="git commit -am"
 alias gu="git up"
+alias gfsrp="git fetch && git stash && git rebase && git stash pop"
 
 # Application aliases
 alias emacs="open -a Emacs"
@@ -31,3 +36,6 @@ alias te="open -a Textedit"
 alias preview="open -a Preview"
 alias f="open -a Finder"
 alias sublime="/Applications/\"Sublime Text 2.app\"/Contents/SharedSupport/bin/subl"
+
+# CocoaPods pod-dev script (https://objectpartners.com/wp-content/uploads/2014/06/pod-dev)
+alias pod-dev="sh $DOTFILE_DIR/.pod-dev"

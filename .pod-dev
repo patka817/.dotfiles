@@ -1,0 +1,306 @@
+#!/bin/sh
+
+# Set of commands that manage pods for development.  Eases the mansagement of in-house
+# CocoaPods for development
+#
+# Pre-requisites
+# --------------
+#
+# Git installed
+#
+# CocoaPods installed
+DEFAULT_PODLOCAL_DIR=~/PodsLocal
+BASEDIR=$(dirname $0)
+INHOUSE_SPEC_NAME=<YOUR In House Specification Repo name here>
+INHOUSE_SPEC_REPOSURL=<Git URL to SPEC Repo>
+#~ pod-dev functions ---------------------------------------------------------------------------
+echoCommands() {
+	echo ""
+	echo "Directory where pod-dev script resides '$BASEDIR'"
+	echo ""
+	echo "Commands:\n---------"
+	echo "pod-ext clearcache -- Wipes out the local CocoaPods GIT Cache"
+	echo "pod-ext clean -- From root dir of xcode project with a Podfile"
+	echo "pod-ext init-inhouse -- Initializes the inhouse repository"
+	echo ""
+	echo "pod-ext get-localpod [gitCloneUrl] [PodName]"
+    echo ""
+    echo "pod-ext remove-localpod <podName>"
+    echo ""
+    echo "pod-ext local-refs -- switch references to Local PODS"
+	echo "pod-ext released-refs -- switch references to Released PODS"
+	echo ""
+	echo "pod-ext version -- From root dir of pod.  Prints out current version in podspec"
+    echo "pod-ext release  -- From root dir of pod.  Releases version to in house Specs repo"
+    echo "pod-ext rollback -- From root dir of pod.  Rolls back tag in Git Repo for Pod and Specs"
+}
+
+clearCachedPods() {
+	USER_HOME=$(eval echo ~${SUDO_USER})
+	echo ${USER_HOME}
+
+	if [ -d "${USER_HOME}/Library/Caches/CocoaPods/Git" ]; then
+		rm -Rf ${USER_HOME}/Library/Caches/CocoaPods/Git
+		echo "Cocoa Pods Cache Cleared."
+	else
+		echo "No Cocoa Pods Cache exists."
+	fi
+}
+
+cleanPods() {
+	if [ -d "./Pods" ]; then
+		rm -Rf ./Pods
+		echo "Pods directory removed..."
+
+		rm Podfile.lock
+		echo "Podfile.lock removed..."
+		echo "Clean done."
+	else
+		echo "No Pods installed here."
+	fi
+}
+addInHousePodRepo() {
+	pod repo add $INHOUSE_SPEC_NAME $INHOUSE_SPEC_REPOSURL
+}
+
+getLocalPod() {
+	echo "Getting Pod '$3' for local development\n"
+
+	POD_CMD=$1
+	POD_REPO_URL=$2
+	POD_NAME=$3
+	if [ -d "$DEFAULT_PODLOCAL_DIR/$POD_NAME" ]; then
+		cd $DEFAULT_PODLOCAL_DIR/$POD_NAME
+		git pull
+	else
+		git clone $POD_REPO_URL $DEFAULT_PODLOCAL_DIR/$POD_NAME
+	fi
+}
+
+removePodLocal() {
+	echo "Removing Local Pod $2 for local development\n"
+
+	rm -Rf $DEFAULT_PODLOCAL_DIR/$2
+}
+
+#POD Release Mgmt functions-------------------------------------
+showPodVersion() {
+	PODSPEC_FILE=$(find *.podspec)
+
+	if [ -z "$PODSPEC_FILE" ]; then
+		echo "No Podspec found."
+	else
+		#Check for double or single quoted version
+		VERSION_LINE=$(cat $PODSPEC_FILE | grep -m 1 -o "^.*version.*=.*$")
+		VERSION=$(echo $VERSION_LINE | grep -o -m 1 "[\"\'][0-9a-zA-Z.]*[0-9a-zA-Z][\"\']")
+		VERSION=$(echo $VERSION | grep -o -m 1 "[0-9a-zA-Z.]*[0-9a-zA-Z]")
+		echo $VERSION
+	fi
+}
+
+releasePod() {
+	PODSPEC_FILE=$(find *.podspec)
+
+	if [ -z "$PODSPEC_FILE" ]; then
+		echo "No Podspec found."
+	else
+		VERSION_LINE=$(cat $PODSPEC_FILE | grep -m 1 -o "^.*version.*=.*$")
+		VERSION_LOCAL=$(echo $VERSION_LINE | grep -o -m 1 "[\"\'][0-9a-zA-Z.]*[0-9a-zA-Z][\"\']")
+		VERSION_LOCAL=$(echo $VERSION_LOCAL | grep -o -m 1 "[0-9a-zA-Z.]*[0-9a-zA-Z]")
+		echo $VERSION_LOCAL
+
+		if [[ "$VERSION_LOCAL" != *.LOCAL* ]]; then
+			echo "The version does not contain pattern 'x.y.z.LOCAL' to indicate dev version of POD."
+		else
+			VERSION_RELEASE=$(echo $VERSION_LOCAL | grep -o -m 1 "[0-9a-z.]*[0-9a-z]")
+
+			echo "Are you ready to release version '$VERSION_LOCAL' as '$VERSION_RELEASE' (y or n)?"
+
+			read doRelease
+
+			if [[ "$doRelease" == y ]]; then
+				echo "Preparing Pod version '$VERSION_RELEASE'...\n"
+
+				sed "s/$VERSION_LOCAL/$VERSION_RELEASE/" $PODSPEC_FILE > tmp.podspec
+				mv -f tmp.podspec $PODSPEC_FILE
+
+				#Commit and Push the New Release
+				git commit -a -m"Final Release for $VERSION_RELEASE"
+				git tag $VERSION_RELEASE
+				git push --tags
+				pod push $INHOUSE_SPEC_NAME --allow-warnings
+
+				echo "Release committed and pushed to GIT!!\n"
+
+				#Add New Version
+				echo "Enter next (new) version for this Pod:  "
+				read nextVersion
+				NEW_VERSION=$(echo $nextVersion.LOCAL)
+
+				echo "New Version will be '$NEW_VERSION'..."
+
+				#This AWK script makes sure that only for the first 2 replacements are made.
+				#This prevents a overwiting of dependency versions that are the same as the one for the
+				#particular pod spec.
+				cat $PODSPEC_FILE | awk -v version=$VERSION_RELEASE -v newVersion=$NEW_VERSION ' \
+					{ \
+						if (count < 2) { \
+							subCount=gsub(version,newVersion); if (subCount >= 1) count++ \
+						} \
+					} \
+					{print $0}'  > tmp.podspec
+
+				mv -f tmp.podspec $PODSPEC_FILE
+
+				echo "Release DONE!"
+			else
+				echo "Release Cancelled :-("
+			fi
+		fi
+
+	fi
+}
+
+rollbackPod() {
+	PODSPEC_FILE=$(find *.podspec)
+
+	if [ -z "$PODSPEC_FILE" ]; then
+		echo "No Podspec found."
+	else
+		POD_NAME=$(echo $PODSPEC_FILE | grep -m 1 -o "^[^.]*")
+
+		echo "Enter version to rollback for '$POD_NAME'"
+		read ROLLBACK_VERSION
+		echo "Rollback Release '$ROLLBACK_VERSION' for Pod '$POD_NAME'"
+
+		git tag -d $ROLLBACK_VERSION
+		git push origin :refs/tags/$ROLLBACK_VERSION
+
+		rm -Rf ~/.cocoapods/$INHOUSE_SPEC_NAME/$POD_NAME/$ROLLBACK_VERSION
+
+		cd ~/.cocoapods/$INHOUSE_SPEC_/$2
+		git commit -a -m"Rollback release $ROLLBACK_VERSION for Pod $POD_NAME"
+		git push
+	fi
+}
+
+switchToLocalRefs() {
+	POD_FILE=$(find Podfile)
+	PODSPEC_FILE=$(find *.podspec)
+
+	if [ ! -z "$POD_FILE" ]; then
+		echo "Switching '$POD_FILE' to local refs..."
+		cat $POD_FILE | awkLocal > tmpfile
+		mv tmpfile $POD_FILE
+	fi
+	if [ ! -z "$PODSPEC_FILE" ]; then
+		echo "Switching '$PODSPEC_FILE' to local refs..."
+		cat $PODSPEC_FILE | awkLocal > tmpfile
+		mv tmpfile $PODSPEC_FILE
+	fi
+}
+awkLocal() {
+	awk ' \
+	{ \
+		if (uncommentLocal == 0 && commentReleased == 0) { \
+			print $0; \
+		} else if (uncommentLocal == 1) { \
+			if ($0 !~ /--BEGIN/ && $0 !~ /--END /) \
+				gsub("#", ""); \
+			print $0; \
+		} else if (commentReleased == 1) { \
+			if ($0 !~ /--BEGIN/ && $0 !~ /--END /) \
+				print "#"$0; \
+			else \
+				print $0; \
+		} \
+		if ( $0 ~ /BEGIN LOCAL/ ) { \
+			uncommentLocal=1; \
+		} else if ( $0 ~ /END LOCAL/ ) { \
+			uncommentLocal=0; \
+		} else if ( $0 ~ /BEGIN RELEASED/ ) { \
+			commentReleased=1; \
+		}  else if ( $0 ~ /END RELEASED/ ) { \
+			commentReleased=0; \
+		} \
+	}'
+}
+
+switchToReleasedRefs() {
+	POD_FILE=$(find Podfile)
+	PODSPEC_FILE=$(find *.podspec)
+
+	if [ ! -z "$POD_FILE" ]; then
+		echo "Switching '$POD_FILE' to released refs..."
+		cat $POD_FILE | awkReleased > tmpfile
+		mv tmpfile $POD_FILE
+	fi
+	if [ ! -z "$PODSPEC_FILE" ]; then
+		echo "Switching '$PODSPEC_FILE' to released refs..."
+		cat $PODSPEC_FILE | awkReleased > tmpfile
+		mv tmpfile $PODSPEC_FILE
+	fi
+}
+awkReleased() {
+	awk ' \
+	{ \
+		if (uncommentReleased == 0 && commentLocal == 0) { \
+			print $0; \
+		} else if (commentLocal == 1) { \
+			if ($0 !~ /BEGIN/ && $0 !~ /END /) \
+				print "#"$0; \
+			else \
+				print $0; \
+		} else if (uncommentReleased == 1) { \
+			if ($0 !~ /--BEGIN/ && $0 !~ /--END /) \
+				gsub("#", ""); \
+			print $0; \
+		} \
+		if ( $0 ~ /BEGIN LOCAL/ ) { \
+			commentLocal=1; \
+		}  else if ( $0 ~ /END LOCAL/ ) { \
+			commentLocal=0; \
+		} else if ( $0 ~ /BEGIN RELEASED/ ) { \
+			uncommentReleased=1; \
+		} else if ( $0 ~ /END RELEASED/ ) { \
+			uncommentReleased=0; \
+		} \
+	}'
+}
+
+
+#~ main body of the script --------------------------------------------------------------------
+#echo
+if [ -z "$POD_LOCAL_HOME" ]; then
+	echo "You should set POD_LOCAL_HOME.  Defaulting to ~/PodsLocal"
+else
+	DEFAULT_PODLOCAL_DIR=$POD_LOCAL_HOME
+fi
+if [ $# -eq 0 ]; then
+    echoCommands
+    exit -1
+elif [ $1 == "clearcache" ]; then
+    clearCachedPods
+elif [ $1 == "clean" ]; then
+    cleanPods
+elif [ $1 == "get-localpod" ] && [ $# -eq 3 ]; then
+    getLocalPod $1 $2 $3
+elif [ $1 == "remove-localpod" ] && [ $# -eq 2 ]; then
+    removePodLocal $1 $2
+elif [ $1 == "local-refs" ] && [ $# -eq 1 ]; then
+    switchToLocalRefs $1
+elif [ $1 == "released-refs" ] && [ $# -eq 1 ]; then
+    switchToReleasedRefs $1
+elif [ $1 == "version" ] && [ $# -eq 1 ]; then
+    showPodVersion $1
+elif [ $1 == "release" ] && [ $# -eq 1 ]; then
+    releasePod $1
+elif [ $1 == "rollback" ] && [ $# -eq 1 ]; then
+    rollbackPod $1 $2 $3
+elif [ $1 == "init-inhouse" ]; then
+    addInHousePodRepo
+else
+	echo "\nERROR:  See command usage\n"
+	echoCommands
+fi
+#~ END OF FILE --------------------------------------------------------------------------------
