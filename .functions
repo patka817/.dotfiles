@@ -8,6 +8,18 @@ gcamrand() {
   gcmrand
 }
 
+git_what_did_i_do_yesterday() {
+	AUTHOR=${AUTHOR:="`git config user.name`"}
+	EMAIL=${EMAIL:="`git config user.email`"}
+	since=yesterday
+	until=midnight
+	if [[ $(date +%u) == 1 ]] ; then
+		since="3 days ago"
+	fi
+	#git log --graph --all --since="$since" --author="$EMAIL" --oneline
+	git log --since "$since" --until "$until" --oneline --all --author="$EMAIL"
+}
+
 # List all branches which are missing upstream branch ('gone') and prompts if it should remove them or not. (not force delete!)
 git_rm_all_gone_branches() {
 	git fetch -p > /dev/null 2>&1
